@@ -4,33 +4,41 @@ on:
   push:
     branches: [ "main" ]
 
-env:
-  AWS_REGION: ${{ vars.AWS_REGION }}
-  AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
-  ROLE_TO_ASSUME: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/staging-github-oidc
-  FE_REPO: ${{ vars.ECR_REPO_FE || 'staging-frontend' }}
-  BE_REPO: ${{ vars.ECR_REPO_BE || 'staging-backend' }}
-  FE_IMAGE: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com/${{ vars.ECR_REPO_FE || 'staging-frontend' }}
-  FE_NGINX_IMAGE: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com/${{ vars.ECR_REPO_FE || 'staging-frontend' }}-nginx
-  BE_IMAGE: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com/${{ vars.ECR_REPO_BE || 'staging-backend' }}
+# Evita solapamiento de despliegues
+concurrency:
+  group: staging-deploy
+  cancel-in-progress: true
 
 jobs:
   deploy:
+    environment: staging   # <- usa el environment "staging"
     runs-on: ubuntu-latest
     permissions:
-      id-token: write
+      id-token: write      # <- necesario para OIDC
       contents: read
 
+    env:
+      AWS_REGION: ${{ vars.AWS_REGION }}                        
+      AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}             
+      ROLE_TO_ASSUME: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/staging-github-oidc
+      FE_REPO: ${{ vars.ECR_REPO_FE || 'staging-frontend' }}
+      BE_REPO: ${{ vars.ECR_REPO_BE || 'staging-backend' }}
+      FE_IMAGE: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com/${{ vars.ECR_REPO_FE || 'staging-frontend' }}
+      FE_NGINX_IMAGE: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com/${{ vars.ECR_REPO_FE || 'staging-frontend' }}-nginx
+      BE_IMAGE: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com/${{ vars.ECR_REPO_BE || 'staging-backend' }}
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Configure AWS Credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ env.ROLE_TO_ASSUME }}
           aws-region: ${{ env.AWS_REGION }}
+          # audience: sts.amazonaws.com  # por defecto ya es este
 
-      - name: Login to ECR
+      - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
 
       - name: Build & Push Frontend
@@ -51,7 +59,7 @@ jobs:
           docker build -t "$BE_IMAGE:latest" .
           docker push "$BE_IMAGE:latest"
 
-      - name: Terraform Init/Apply
+      - name: Terraform Init & Apply
         working-directory: ./infrastructure
         run: |
           terraform init -input=false
