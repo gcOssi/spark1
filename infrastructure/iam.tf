@@ -4,9 +4,9 @@ resource "aws_iam_role" "ecs_task_execution" {
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
     Statement = [{
-      Effect = "Allow",
+      Effect    = "Allow",
       Principal = { Service = "ecs-tasks.amazonaws.com" },
-      Action = "sts:AssumeRole"
+      Action    = "sts:AssumeRole"
     }]
   })
 }
@@ -22,9 +22,9 @@ resource "aws_iam_role" "ecs_task" {
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
     Statement = [{
-      Effect = "Allow",
+      Effect    = "Allow",
       Principal = { Service = "ecs-tasks.amazonaws.com" },
-      Action = "sts:AssumeRole"
+      Action    = "sts:AssumeRole"
     }]
   })
 }
@@ -35,9 +35,9 @@ resource "aws_iam_role" "github_actions_oidc" {
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
     Statement = [{
-      Effect = "Allow",
+      Effect    = "Allow",
       Principal = { Federated = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:oidc-provider/token.actions.githubusercontent.com" },
-      Action = "sts:AssumeRoleWithWebIdentity",
+      Action    = "sts:AssumeRoleWithWebIdentity",
       Condition = {
         StringLike = {
           "token.actions.githubusercontent.com:sub" : "repo:YOUR_GH_ORG/YOUR_REPO:ref:refs/heads/main"
@@ -55,12 +55,12 @@ resource "aws_iam_role_policy" "github_permissions" {
   policy = jsonencode({
     Version = "2012-10-17",
     Statement = [
-      { Effect="Allow", Action=[
-          "ecr:*"
-        ], Resource="*" },
-      { Effect="Allow", Action=[
-          "ecs:*","iam:PassRole","elasticloadbalancing:*","cloudwatch:*","sns:*","ssm:*","logs:*","cloudfront:*","acm:*","ec2:*","route53:*","s3:*"
-        ], Resource="*" }
+      { Effect = "Allow", Action = [
+        "ecr:*"
+      ], Resource = "*" },
+      { Effect = "Allow", Action = [
+        "ecs:*", "iam:PassRole", "elasticloadbalancing:*", "cloudwatch:*", "sns:*", "ssm:*", "logs:*", "cloudfront:*", "acm:*", "ec2:*", "route53:*", "s3:*"
+      ], Resource = "*" }
     ]
   })
 }

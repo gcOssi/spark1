@@ -25,44 +25,43 @@ resource "aws_ecs_task_definition" "frontend" {
 
   container_definitions = jsonencode([
     {
-      "name": "frontend",
-      "image": "${aws_ecr_repository.frontend.repository_url}:latest",
-      "essential": true,
-      "portMappings": [{"containerPort": 3000, "hostPort": 3000, "protocol": "tcp"}],
-      "environment": [{"name":"PORT","value":"3000"}],
-      "logConfiguration": {
-        "logDriver": "awslogs",
-        "options": {
-          "awslogs-group": "${aws_cloudwatch_log_group.fe.name}",
-          "awslogs-region": "${var.region}",
-          "awslogs-stream-prefix": "frontend"
+      "name" : "frontend",
+      "image" : "${aws_ecr_repository.frontend.repository_url}:latest",
+      "essential" : true,
+      "portMappings" : [{ "containerPort" : 3000, "hostPort" : 3000, "protocol" : "tcp" }],
+      "environment" : [{ "name" : "PORT", "value" : "3000" }],
+      "logConfiguration" : {
+        "logDriver" : "awslogs",
+        "options" : {
+          "awslogs-group" : "${aws_cloudwatch_log_group.fe.name}",
+          "awslogs-region" : "${var.region}",
+          "awslogs-stream-prefix" : "frontend"
         }
       }
     },
     {
-      "name": "auth-proxy",
-      "image": "${aws_ecr_repository.frontend.repository_url}-nginx:latest",
-      "essential": true,
-      "portMappings": [{"containerPort": 80, "hostPort": 80, "protocol": "tcp"}],
-      "environment": [
-        {"name":"BASIC_AUTH_USER","valueFrom":"${aws_ssm_parameter.basic_user.arn}"},
-        {"name":"BASIC_AUTH_PASS","valueFrom":"${aws_ssm_parameter.basic_pass.arn}"}
+      "name" : "auth-proxy",
+      "image" : "${aws_ecr_repository.frontend.repository_url}-nginx:latest",
+      "essential" : true,
+      "portMappings" : [{ "containerPort" : 80, "hostPort" : 80, "protocol" : "tcp" }],
+      "environment" : [
+        { "name" : "BASIC_AUTH_USER", "valueFrom" : "${aws_ssm_parameter.basic_user.arn}" },
+        { "name" : "BASIC_AUTH_PASS", "valueFrom" : "${aws_ssm_parameter.basic_pass.arn}" }
       ],
-      "logConfiguration": {
-        "logDriver": "awslogs",
-        "options": {
-          "awslogs-group": "${aws_cloudwatch_log_group.fe.name}",
-          "awslogs-region": "${var.region}",
-          "awslogs-stream-prefix": "nginx"
+      "logConfiguration" : {
+        "logDriver" : "awslogs",
+        "options" : {
+          "awslogs-group" : "${aws_cloudwatch_log_group.fe.name}",
+          "awslogs-region" : "${var.region}",
+          "awslogs-stream-prefix" : "nginx"
         }
       },
-      "dependsOn": [{"containerName":"frontend","condition":"START"}],
-      "links": ["frontend"]
+      "dependsOn" : [{ "containerName" : "frontend", "condition" : "START" }],
     }
   ])
   runtime_platform {
     operating_system_family = "LINUX"
-    cpu_architecture         = "X86_64"
+    cpu_architecture        = "X86_64"
   }
 }
 
@@ -78,22 +77,22 @@ resource "aws_ecs_task_definition" "backend" {
 
   container_definitions = jsonencode([
     {
-      "name": "backend",
-      "image": "${aws_ecr_repository.backend.repository_url}:latest",
-      "essential": true,
-      "portMappings": [{"containerPort": 4000, "hostPort": 4000, "protocol": "tcp"}],
-      "logConfiguration": {
-        "logDriver": "awslogs",
-        "options": {
-          "awslogs-group": "${aws_cloudwatch_log_group.be.name}",
-          "awslogs-region": "${var.region}",
-          "awslogs-stream-prefix": "backend"
+      "name" : "backend",
+      "image" : "${aws_ecr_repository.backend.repository_url}:latest",
+      "essential" : true,
+      "portMappings" : [{ "containerPort" : 4000, "hostPort" : 4000, "protocol" : "tcp" }],
+      "logConfiguration" : {
+        "logDriver" : "awslogs",
+        "options" : {
+          "awslogs-group" : "${aws_cloudwatch_log_group.be.name}",
+          "awslogs-region" : "${var.region}",
+          "awslogs-stream-prefix" : "backend"
         }
       }
     }
   ])
   runtime_platform {
     operating_system_family = "LINUX"
-    cpu_architecture         = "X86_64"
+    cpu_architecture        = "X86_64"
   }
 }

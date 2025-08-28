@@ -12,7 +12,3 @@ provider "aws" {
   region = var.region
 }
 
-# SSM params for Basic Auth defaults (avoid storing in TF state, but for demo we use simple strings)
-module "ssm" {
-  source = "./ssm"
-}

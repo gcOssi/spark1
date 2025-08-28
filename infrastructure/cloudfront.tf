@@ -11,9 +11,9 @@ resource "aws_cloudfront_distribution" "this" {
     }
   }
 
-  enabled             = true
-  is_ipv6_enabled     = true
-  comment             = "${var.name_prefix}-staging"
+  enabled         = true
+  is_ipv6_enabled = true
+  comment         = "${var.name_prefix}-staging"
   default_cache_behavior {
     allowed_methods  = ["GET", "HEAD", "OPTIONS"]
     cached_methods   = ["GET", "HEAD"]
