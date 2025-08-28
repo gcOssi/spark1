@@ -8,8 +8,8 @@ env:
   AWS_REGION: ${{ vars.AWS_REGION }}
   AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
   ROLE_TO_ASSUME: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/staging-github-oidc
-  FE_REPO: ${{ vars.ECR_REPO_FE }}
-  BE_REPO: ${{ vars.ECR_REPO_BE }}
+  FE_REPO: ${{ vars.ECR_REPO_FE }}         # p.ej. staging-frontend
+  BE_REPO: ${{ vars.ECR_REPO_BE }}         # p.ej. staging-backend
   FE_IMAGE: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com/${{ vars.ECR_REPO_FE }}
   FE_NGINX_IMAGE: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com/${{ vars.ECR_REPO_FE }}-nginx
   BE_IMAGE: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com/${{ vars.ECR_REPO_BE }}
@@ -30,18 +30,25 @@ jobs:
           role-to-assume: ${{ env.ROLE_TO_ASSUME }}
           aws-region: ${{ env.AWS_REGION }}
 
-      # 🔁 1) Terraform primero (crea ECR, ECS, ALB, etc.)
+      # ✅ Instalar Terraform
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.8.5
+
+      # 1) Terraform primero (crea ECR/ECS/ALB/CloudFront/SNS/SSM)
       - name: Terraform Init/Apply
         working-directory: ./infrastructure
         run: |
+          terraform -version
           terraform init -input=false
           terraform apply -auto-approve -input=false
 
-      # 🔐 2) Login a ECR
+      # 2) Login a ECR
       - name: Login to ECR
         uses: aws-actions/amazon-ecr-login@v2
 
-      # 🏷️ 3) (Opcional) Asegurar que los repos existen (idempotente)
+      # 3) (idempotente) crear repos si faltan
       - name: Ensure ECR repositories exist
         shell: bash
         run: |
@@ -51,7 +58,7 @@ jobs:
             aws ecr create-repository --repository-name "$r" >/dev/null
           done
 
-      # 🏗️ 4) Build & Push
+      # 4) Build & Push imágenes
       - name: Build & Push Frontend
         working-directory: ./frontend
         run: |
@@ -70,7 +77,7 @@ jobs:
           docker build -t "$BE_IMAGE:latest" .
           docker push "$BE_IMAGE:latest"
 
-      # ♻️ 5) Re-Apply para forzar nuevo despliegue con imágenes ya presentes (idempotente)
+      # 5) Re-apply para rodar servicios con las nuevas imágenes
       - name: Terraform Apply (roll services to latest)
         working-directory: ./infrastructure
         run: |
