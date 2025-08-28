@@ -1,0 +1,6 @@
+FROM nginx:alpine
+RUN apk add --no-cache apache2-utils bash
+# credentials are supplied by env BASIC_AUTH_USER / BASIC_AUTH_PASS
+# we create the file at container start to avoid persisting creds in image
+COPY nginx.conf /etc/nginx/nginx.conf
+CMD bash -lc 'htpasswd -bc /etc/nginx/.htpasswd "$BASIC_AUTH_USER" "$BASIC_AUTH_PASS" && exec nginx -g "daemon off;"'

@@ -1,0 +1,58 @@
+name: Deploy Staging (ECS + Terraform)
+
+on:
+  push:
+    branches: [ "main" ]
+
+env:
+  AWS_REGION: ${{ vars.AWS_REGION }}
+  AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+  ROLE_TO_ASSUME: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/staging-github-oidc
+  FE_REPO: ${{ vars.ECR_REPO_FE || 'staging-frontend' }}
+  BE_REPO: ${{ vars.ECR_REPO_BE || 'staging-backend' }}
+  FE_IMAGE: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com/${{ vars.ECR_REPO_FE || 'staging-frontend' }}
+  FE_NGINX_IMAGE: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com/${{ vars.ECR_REPO_FE || 'staging-frontend' }}-nginx
+  BE_IMAGE: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com/${{ vars.ECR_REPO_BE || 'staging-backend' }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build & Push Frontend
+        working-directory: ./frontend
+        run: |
+          docker build -t "$FE_IMAGE:latest" .
+          docker push "$FE_IMAGE:latest"
+
+      - name: Build & Push Frontend Nginx Auth Sidecar
+        working-directory: ./frontend
+        run: |
+          docker build -t "$FE_NGINX_IMAGE:latest" -f Dockerfile.nginx .
+          docker push "$FE_NGINX_IMAGE:latest"
+
+      - name: Build & Push Backend
+        working-directory: ./backend
+        run: |
+          docker build -t "$BE_IMAGE:latest" .
+          docker push "$BE_IMAGE:latest"
+
+      - name: Terraform Init/Apply
+        working-directory: ./infrastructure
+        run: |
+          terraform init -input=false
+          terraform apply -auto-approve -input=false
