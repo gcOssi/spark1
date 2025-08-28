@@ -1,0 +1,23 @@
+# Terraform
+**/.terraform/**
+.terraform.tfstate*
+*.tfstate
+crash.log
+override.tf
+terraform.tfvars
+terraform.tfvars.json
+
+# Mantén el lock (recomendado)
+# !.terraform.lock.hcl
+
+# Node/Frontend
+**/node_modules/**
+**/dist/**
+**/build/**
+
+# Otros
+*.zip
+*.tgz
+.DS_Store
+.env
+.env.*
